@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Campus Navigator — Horizon College</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --p:#0F2D4A;--acc:#F05A1A;--acc2:#FFF1EA;
+  --bg:#EEF0F3;--card:#fff;--text:#111;--muted:#6B6E78;--bd:rgba(0,0,0,0.09);
+  --ca:#1A3C5E;--cf:#E05B1A;--cs:#177A40;--cad:#6F35B8;--cfa:#A07010;--ch:#BE3030;
+  --sw:360px;
+}
+html,body{height:100%;overflow:hidden;font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);}
+
+header{background:var(--p);color:#fff;height:58px;display:flex;align-items:center;padding:0 20px 0 0;flex-shrink:0;z-index:1200;position:relative;}
+.hd-logo{display:flex;align-items:center;gap:12px;padding:0 20px;height:100%;border-right:1px solid rgba(255,255,255,0.1);}
+.hd-emblem{width:36px;height:36px;background:var(--acc);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.hd-title{font-family:'Syne',sans-serif;font-weight:700;font-size:17px;line-height:1.1;}
+.hd-sub{font-size:10px;opacity:.55;letter-spacing:1.5px;text-transform:uppercase;margin-top:1px;}
+.hd-nav{display:flex;align-items:center;gap:6px;padding-left:16px;flex:1;}
+.hdb{display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:transparent;color:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:background .15s;}
+.hdb:hover{background:rgba(255,255,255,0.1);}
+.hdb.on{background:var(--acc);border-color:var(--acc);}
+.hd-right{display:flex;align-items:center;gap:16px;margin-left:auto;}
+.hd-stat{text-align:center;}
+.hd-num{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:var(--acc);line-height:1;}
+.hd-lbl{font-size:9px;opacity:.5;letter-spacing:1.5px;text-transform:uppercase;margin-top:1px;}
+.hd-sep{width:1px;height:28px;background:rgba(255,255,255,0.12);}
+
+.app{display:flex;height:calc(100vh - 58px);}
+.sidebar{width:var(--sw);background:var(--card);display:flex;flex-direction:column;border-right:1px solid var(--bd);flex-shrink:0;z-index:100;overflow:hidden;}
+
+.sb-search{padding:12px 14px;border-bottom:1px solid var(--bd);flex-shrink:0;position:relative;}
+.sb-search input{width:100%;padding:9px 14px 9px 36px;border:1.5px solid var(--bd);border-radius:10px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;background:var(--bg);color:var(--text);outline:none;transition:border-color .2s;}
+.sb-search input:focus{border-color:var(--acc);background:#fff;}
+.s-ico{position:absolute;left:26px;top:50%;transform:translateY(-50%);font-size:14px;pointer-events:none;opacity:.4;}
+.ac-drop{position:absolute;left:14px;right:14px;top:calc(100% - 2px);background:#fff;border:1px solid var(--bd);border-radius:10px;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,0.1);display:none;overflow:hidden;}
+.ac-row{padding:9px 14px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:9px;transition:background .1s;}
+.ac-row:hover{background:var(--bg);}
+.ac-rname{font-weight:500;color:var(--text);}
+.ac-rcat{font-size:11px;color:var(--muted);}
+
+.sb-cats{padding:10px 14px;border-bottom:1px solid var(--bd);flex-shrink:0;}
+.cat-lbl{font-size:10px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.pills{display:flex;flex-wrap:wrap;gap:5px;}
+.pill{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;border:1.5px solid;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;user-select:none;}
+.pill .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.pill[data-c="all"]{border-color:var(--p);color:var(--p);}
+.pill[data-c="all"].on{background:var(--p);color:#fff;}
+.pill[data-c="academic"]{border-color:var(--ca);color:var(--ca);}
+.pill[data-c="academic"].on{background:var(--ca);color:#fff;}
+.pill[data-c="food"]{border-color:var(--cf);color:var(--cf);}
+.pill[data-c="food"].on{background:var(--cf);color:#fff;}
+.pill[data-c="sports"]{border-color:var(--cs);color:var(--cs);}
+.pill[data-c="sports"].on{background:var(--cs);color:#fff;}
+.pill[data-c="admin"]{border-color:var(--cad);color:var(--cad);}
+.pill[data-c="admin"].on{background:var(--cad);color:#fff;}
+.pill[data-c="facility"]{border-color:var(--cfa);color:var(--cfa);}
+.pill[data-c="facility"].on{background:var(--cfa);color:#fff;}
+.pill[data-c="hostel"]{border-color:var(--ch);color:var(--ch);}
+.pill[data-c="hostel"].on{background:var(--ch);color:#fff;}
+
+.sb-list{flex:1;overflow-y:auto;padding:6px;}
+.sb-list::-webkit-scrollbar{width:3px;}
+.sb-list::-webkit-scrollbar-thumb{background:#ddd;border-radius:2px;}
+.li{display:flex;align-items:center;gap:11px;padding:10px 10px;border-radius:10px;cursor:pointer;transition:background .12s;margin-bottom:1px;}
+.li:hover{background:var(--bg);}
+.li.active{background:var(--acc2);}
+.li-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;color:#fff;}
+.li-info{flex:1;min-width:0;}
+.li-name{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.li-sub{font-size:11px;color:var(--muted);margin-top:1px;}
+.li-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;color:#fff;flex-shrink:0;text-transform:uppercase;letter-spacing:.5px;}
+
+/* Directions panel */
+#pDir{display:flex;flex-direction:column;height:100%;}
+.dir-in{padding:14px;border-bottom:1px solid var(--bd);flex-shrink:0;}
+.dr{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.dr:last-of-type{margin-bottom:0;}
+.dr-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.dr-vline{width:1px;height:14px;background:var(--bd);margin-left:4px;}
+.dsel{flex:1;padding:8px 10px;border:1.5px solid var(--bd);border-radius:9px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;background:var(--bg);color:var(--text);outline:none;cursor:pointer;}
+.dsel:focus{border-color:var(--acc);}
+.btn-go{width:100%;padding:9px;background:var(--acc);color:#fff;border:none;border-radius:10px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;margin-top:10px;transition:background .15s;}
+.btn-go:hover{background:#d14e10;}
+.btn-clr{width:100%;padding:7px;background:transparent;color:var(--acc);border:1.5px solid var(--acc);border-radius:10px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;margin-top:6px;transition:all .15s;display:none;}
+.btn-clr:hover{background:var(--acc2);}
+
+.rs{margin:12px 14px;background:var(--bg);border-radius:12px;padding:12px 14px;display:none;}
+.rs.show{display:block;}
+.rs-hd{font-size:10px;font-weight:600;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px;}
+.rs-row{display:flex;gap:10px;}
+.rs-s{flex:1;background:#fff;border-radius:9px;padding:8px 10px;text-align:center;}
+.rs-n{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:var(--acc);}
+.rs-l{font-size:10px;color:var(--muted);margin-top:1px;}
+
+.steps-hd{font-size:10px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);padding:4px 14px 6px;display:none;}
+.steps{flex:1;overflow-y:auto;padding:0 8px 8px;}
+.steps::-webkit-scrollbar{width:3px;}
+.steps::-webkit-scrollbar-thumb{background:#ddd;border-radius:2px;}
+.step{display:flex;align-items:flex-start;gap:10px;padding:8px 8px;border-radius:9px;margin-bottom:2px;}
+.step:nth-child(odd){background:var(--bg);}
+.step-n{width:22px;height:22px;border-radius:50%;background:var(--p);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.step-t{font-size:12px;color:var(--text);line-height:1.5;}
+.step-d{font-size:11px;color:var(--muted);margin-top:2px;}
+.no-r{padding:36px 16px;text-align:center;color:var(--muted);font-size:13px;line-height:1.9;}
+
+.map-wrap{flex:1;position:relative;}
+#map{width:100%;height:100%;}
+.leaflet-routing-container{display:none!important;}
+
+/* Info card */
+.ic{position:absolute;bottom:16px;right:16px;width:300px;background:#fff;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.14);z-index:600;overflow:hidden;transform:translateY(20px);opacity:0;pointer-events:none;transition:all .25s cubic-bezier(.34,1.56,.64,1);}
+.ic.show{transform:translateY(0);opacity:1;pointer-events:all;}
+.ic-head{padding:14px 14px 10px;position:relative;}
+.ic-x{position:absolute;top:10px;right:10px;width:26px;height:26px;border-radius:50%;border:none;background:var(--bg);cursor:pointer;font-size:14px;color:var(--muted);display:flex;align-items:center;justify-content:center;transition:background .15s;}
+.ic-x:hover{background:#eee;}
+.ic-top{display:flex;align-items:center;gap:11px;margin-bottom:8px;}
+.ic-em{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;flex-shrink:0;}
+.ic-nm{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;line-height:1.2;}
+.ic-ct{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-top:2px;}
+.ic-body{padding:0 14px 14px;}
+.ic-desc{font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:10px;}
+.ic-meta{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;}
+.mc{background:var(--bg);border-radius:8px;padding:6px 9px;}
+.mc-l{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px;}
+.mc-v{font-size:12px;font-weight:600;color:var(--text);}
+.ic-btns{display:flex;gap:7px;}
+.ibp{flex:1;padding:9px;background:var(--acc);color:#fff;border:none;border-radius:9px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:background .15s;}
+.ibp:hover{background:#d14e10;}
+.ibs{padding:9px 12px;background:var(--bg);color:var(--p);border:none;border-radius:9px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:background .15s;}
+.ibs:hover{background:#e0e0e0;}
+
+/* Legend */
+.leg{position:absolute;top:14px;right:14px;background:#fff;border-radius:11px;padding:11px 13px;z-index:500;font-size:11px;box-shadow:0 2px 12px rgba(0,0,0,0.1);}
+.leg-t{font-family:'Syne',sans-serif;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:7px;}
+.leg-i{display:flex;align-items:center;gap:7px;margin-bottom:5px;color:var(--text);font-weight:500;}
+.leg-d{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+
+/* My location */
+.btn-loc{position:absolute;bottom:16px;left:16px;background:#fff;border:none;border-radius:11px;padding:9px 14px;display:flex;align-items:center;gap:7px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:600;color:var(--p);cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,0.12);z-index:500;transition:all .15s;}
+.btn-loc:hover{background:var(--p);color:#fff;}
+
+/* Toast */
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(60px);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:30px;font-size:13px;font-weight:500;z-index:9999;transition:transform .3s;pointer-events:none;}
+.toast.show{transform:translateX(-50%) translateY(0);}
+
+/* Marker */
+.cm{width:36px;height:36px;border-radius:50%;border:3px solid #fff;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 2px 8px rgba(0,0,0,.22);cursor:pointer;transition:transform .15s;}
+.cm:hover{transform:scale(1.15);}
+.cm-u{width:16px;height:16px;background:#2979FF;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 4px rgba(41,121,255,.3);}
+</style>
+</head>
+<body>
+<header>
+  <div class="hd-logo">
+    <div class="hd-emblem">🏛️</div>
+    <div>
+      <div class="hd-title">Campus Navigator</div>
+      <div class="hd-sub">SSSUTMS</div>
+    </div>
+  </div>
+  <div class="hd-nav">
+    <button class="hdb on" id="btnB" onclick="setMode('browse')">🗺 Browse Map</button>
+    <button class="hdb" id="btnD" onclick="setMode('dir')">🧭 Directions</button>
+  </div>
+  <div class="hd-right">
+    <div class="hd-stat"><div class="hd-num" id="sTot">26</div><div class="hd-lbl">Locations</div></div>
+    <div class="hd-sep"></div>
+    <div class="hd-stat"><div class="hd-num" id="sShow">26</div><div class="hd-lbl">Visible</div></div>
+    <div class="hd-sep"></div>
+    <div class="hd-stat"><div class="hd-num">6</div><div class="hd-lbl">Categories</div></div>
+  </div>
+</header>
+
+<div class="app">
+  <aside class="sidebar">
+    <!-- Browse -->
+    <div id="pBrowse" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+      <div class="sb-search" style="position:relative;">
+        <span class="s-ico">🔍</span>
+        <input type="text" id="si" placeholder="Search rooms, labs, canteen…" autocomplete="off"/>
+        <div class="ac-drop" id="acd"></div>
+      </div>
+      <div class="sb-cats">
+        <div class="cat-lbl">Filter by Category</div>
+        <div class="pills">
+          <div class="pill on" data-c="all"><span class="dot" style="background:var(--p)"></span>All</div>
+          <div class="pill" data-c="academic"><span class="dot" style="background:var(--ca)"></span>Academic</div>
+          <div class="pill" data-c="food"><span class="dot" style="background:var(--cf)"></span>Food</div>
+          <div class="pill" data-c="sports"><span class="dot" style="background:var(--cs)"></span>Sports</div>
+          <div class="pill" data-c="admin"><span class="dot" style="background:var(--cad)"></span>Admin</div>
+          <div class="pill" data-c="facility"><span class="dot" style="background:var(--cfa)"></span>Facility</div>
+          <div class="pill" data-c="hostel"><span class="dot" style="background:var(--ch)"></span>Hostel</div>
+        </div>
+      </div>
+      <div class="sb-list" id="ll"></div>
+    </div>
+
+    <!-- Directions -->
+    <div id="pDir" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+      <div class="dir-in">
+        <div class="dr">
+          <div class="dr-dot" style="background:#2979FF;"></div>
+          <select class="dsel" id="fSel"><option value="gate">🚪 Main Campus Gate</option></select>
+        </div>
+        <div class="dr-vline"></div>
+        <div class="dr">
+          <div class="dr-dot" style="background:var(--acc);"></div>
+          <select class="dsel" id="tSel"><option value="">— Select Destination —</option></select>
+        </div>
+        <button class="btn-go" onclick="startRoute()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+          Get Directions
+        </button>
+        <button class="btn-clr" id="bClr" onclick="clearRoute()">✕ Clear Route</button>
+      </div>
+      <div class="rs" id="rs">
+        <div class="rs-hd">Route Summary</div>
+        <div class="rs-row">
+          <div class="rs-s"><div class="rs-n" id="rsDist">—</div><div class="rs-l">Distance</div></div>
+          <div class="rs-s"><div class="rs-n" id="rsTime">—</div><div class="rs-l">Walk Time</div></div>
+          <div class="rs-s"><div class="rs-n" id="rsMode">🚶</div><div class="rs-l">Mode</div></div>
+        </div>
+      </div>
+      <div class="steps-hd" id="sHd">Turn-by-turn Directions</div>
+      <div class="steps" id="stepsList">
+        <div class="no-r">Select a destination above<br>and tap <strong>Get Directions</strong><br>to view the route.</div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="map-wrap">
+    <div id="map"></div>
+    <div class="leg">
+      <div class="leg-t">Legend</div>
+      <div class="leg-i"><div class="leg-d" style="background:var(--ca)"></div>Academic</div>
+      <div class="leg-i"><div class="leg-d" style="background:var(--cf)"></div>Food & Canteen</div>
+      <div class="leg-i"><div class="leg-d" style="background:var(--cs)"></div>Sports</div>
+      <div class="leg-i"><div class="leg-d" style="background:var(--cad)"></div>Admin</div>
+      <div class="leg-i"><div class="leg-d" style="background:var(--cfa)"></div>Facilities</div>
+      <div class="leg-i"><div class="leg-d" style="background:var(--ch)"></div>Hostel</div>
+    </div>
+    <button class="btn-loc" onclick="findMe()">📍 My Location</button>
+    <!-- Info Card -->
+    <div class="ic" id="ic">
+      <div class="ic-head">
+        <button class="ic-x" onclick="closeIC()">✕</button>
+        <div class="ic-top">
+          <div class="ic-em" id="icEm"></div>
+          <div><div class="ic-nm" id="icNm"></div><div class="ic-ct" id="icCt"></div></div>
+        </div>
+      </div>
+      <div class="ic-body">
+        <div class="ic-desc" id="icDsc"></div>
+        <div class="ic-meta" id="icMt"></div>
+        <div class="ic-btns">
+          <button class="ibp" id="ibNav">📍 Navigate Here</button>
+          <button class="ibs" id="ibFrom">Set as Start</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.min.js"></script>
+<script>
+const CLR={academic:'#1A3C5E',food:'#E05B1A',sports:'#177A40',admin:'#6F35B8',facility:'#A07010',hostel:'#BE3030'};
+const GATE=[23.215177882211375, 77.12791700244327];
+// const GATE2=[23.21387145729988, 77.12577099862266];
+
+const LOCS=[
+  {id:1, name:'Main Academic Block',     cat:'academic',icon:'🏫',lat:23.21567283983842, lng:77.12702893314231,floor:'G–4F',hours:'8AM–8PM', cap:'40 halls',   desc:'Primary teaching block with 40+ lecture halls, seminar rooms and faculty offices across all engineering departments.'},
+  {id:2, name:'Computer Science Block',  cat:'academic',icon:'💻',lat:23.214999,lng:77.12727695301659,floor:'G–3F',hours:'8AM–9PM', cap:'20 labs',    desc:'Dedicated CS dept with advanced computing labs, server rooms and project studios. 24/7 access for final-year students.'},
+  {id:3, name:'Engineering Lab Complex', cat:'academic',icon:'⚙️',lat:23.02980,lng:72.52650,floor:'G–2F',hours:'8AM–7PM', cap:'18 labs',    desc:'Mechanical, electrical and civil engineering labs. CNC machines, 3D printers and a full prototype workshop.'},
+  {id:4, name:'Central Library',         cat:'academic',icon:'📚',lat:23.03180,lng:72.52280,floor:'G–3F',hours:'7AM–10PM',cap:'80,000 vol', desc:'80,000+ volumes, digital catalogue, silent study zones, group rooms and research archives. Printing available.'},
+  {id:5, name:'Research & Innovation Hub',cat:'academic',icon:'🔬',lat:23.03050,lng:72.52500,floor:'G–2F',hours:'9AM–9PM', cap:'12 studios', desc:'Startup incubation, IoT lab, robotics studio and interdisciplinary project space open to all students.'},
+  {id:6, name:'Examination Hall',        cat:'academic',icon:'📝',lat:23.02950,lng:72.52300,floor:'G–1F',hours:'Exam days',cap:'1200 seats', desc:'Large examination centre for 1,200 students. Hall ticket and college ID mandatory for entry.'},
+  {id:7, name:'Auditorium',              cat:'academic',icon:'🎭',lat:23.03280,lng:72.52350,floor:'G',   hours:'By schedule',cap:'1500 seats',desc:'1,500-seat AC auditorium for convocations, cultural events, seminars and inter-college fests.'},
+  {id:8, name:'Chemistry & Physics Labs',cat:'academic',icon:'🧪',lat:23.02900,lng:72.52480,floor:'G–2F',hours:'8AM–6PM', cap:'10 labs',    desc:'Wet chemistry labs, spectroscopy suites and physics experiment stations for B.Sc and B.Tech.'},
+  {id:9, name:'Electronics & VLSI Lab',  cat:'academic',icon:'🔌',lat:23.03150,lng:72.52200,floor:'G–1F',hours:'8AM–7PM', cap:'8 labs',     desc:'Circuit design, PCB fabrication, microcontroller programming and VLSI simulation suites.'},
+  {id:10,name:'Main Canteen',            cat:'food',    icon:'🍽️',lat:23.03150,lng:72.52680,floor:'G',   hours:'7AM–9PM',  cap:'800 seats',  desc:'Largest dining hall serving breakfast, lunch, snacks and dinner. Both veg and non-veg menus daily.'},
+  {id:11,name:'North Café & Juice Bar',  cat:'food',    icon:'☕',lat:23.03300,lng:72.52600,floor:'G',   hours:'7:30AM–8PM',cap:'80 seats',  desc:'Freshly brewed coffee, cold beverages, sandwiches and light bites. Free Wi-Fi zone.'},
+  {id:12,name:'South Food Court',        cat:'food',    icon:'🍛',lat:23.02850,lng:72.52580,floor:'G',   hours:'10AM–9PM', cap:'200 seats',  desc:'Multi-stall food court with Indian, Chinese, fast food and chaat counters. Evening thali ₹80.'},
+  {id:13,name:'Faculty Lounge & Café',   cat:'food',    icon:'🫖',lat:23.03080,lng:72.52330,floor:'2F',  hours:'8AM–7PM',  cap:'50 seats',   desc:'Exclusive faculty dining and lounge with premium meals, complimentary newspapers and Wi-Fi.'},
+  {id:14,name:'Indoor Sports Complex',   cat:'sports',  icon:'🏟️',lat:23.02750,lng:72.52400,floor:'G',  hours:'6AM–10PM', cap:'2000 sqm',   desc:'Basketball, badminton, table tennis, boxing ring and a 100-station gym with trained instructors.'},
+  {id:15,name:'Cricket Ground',          cat:'sports',  icon:'🏏',lat:23.02680,lng:72.52550,floor:'G',  hours:'6AM–7PM',  cap:'Full size',  desc:'Full-size turf cricket ground with practice nets, electronic scoring and seating stands.'},
+  {id:16,name:'Football & Athletics Field',cat:'sports',icon:'⚽',lat:23.02720,lng:72.52700,floor:'G',  hours:'6AM–7PM',  cap:'400m track', desc:'Regulation football pitch, 400m athletics track and floodlights for evening matches.'},
+  {id:17,name:'Swimming Pool',           cat:'sports',  icon:'🏊',lat:23.02800,lng:72.52780,floor:'G',  hours:'6AM–8PM',  cap:'Olympic',    desc:'Olympic-size 8-lane heated pool with diving board, changing rooms and certified coaches.'},
+  {id:18,name:'Administrative Office',   cat:'admin',   icon:'🏢',lat:23.03350,lng:72.52450,floor:'G–1F',hours:'9AM–5PM', cap:'—',          desc:'Admissions, registrar, fee payments and official certificates. Token system in use for queuing.'},
+  {id:19,name:"Principal's Block",       cat:'admin',   icon:'🎓',lat:23.03380,lng:72.52520,floor:'1F',  hours:'10AM–4PM', cap:'—',          desc:"Principal's and VP's offices. Prior appointment via email required. HODs on the same floor."},
+  {id:20,name:'Placement Cell',          cat:'admin',   icon:'💼',lat:23.03320,lng:72.52580,floor:'G',   hours:'9AM–6PM',  cap:'—',          desc:'Career services, internship coordination, campus recruitment drives and résumé workshops.'},
+  {id:21,name:'Medical Centre',          cat:'facility',icon:'🏥',lat:23.03250,lng:72.52780,floor:'G',   hours:'24 Hours', cap:'30 beds',    desc:'On-campus clinic with qualified doctors, nurses and dispensary. Emergency ambulance on call 24/7.'},
+  {id:22,name:'Central Parking Lot',     cat:'facility',icon:'🅿️',lat:23.02850,lng:72.52250,floor:'G',   hours:'24 Hours', cap:'800 slots',  desc:'800-slot parking with separate zones for two-wheelers, four-wheelers and faculty. CCTV monitored.'},
+  {id:23,name:'Bank & ATM Branch',       cat:'facility',icon:'🏦',lat:23.03200,lng:72.52700,floor:'G',   hours:'9AM–4PM',  cap:'2 ATMs',     desc:'SBI branch with full banking services, two 24-hour ATMs and currency exchange counter.'},
+  {id:24,name:'Stationery & Book Store', cat:'facility',icon:'📖',lat:23.03150,lng:72.52750,floor:'G',   hours:'8AM–7PM',  cap:'—',          desc:'Textbooks, stationery, electronics accessories, printing, photocopying and binding services.'},
+  {id:25,name:"Boys' Hostel (A & B)",    cat:'hostel',  icon:'🛏️',lat:23.02600,lng:72.52350,floor:'G–4F',hours:'24 Hours', cap:'800 rooms',  desc:'800-bed hostel with study rooms, high-speed Wi-Fi, common room, indoor games and mess facility.'},
+  {id:26,name:"Girls' Hostel (Block C)", cat:'hostel',  icon:'🏠',lat:23.02550,lng:72.52500,floor:'G–4F',hours:'24 Hours', cap:'500 rooms',  desc:'500-bed secure hostel with Wi-Fi, indoor recreation, 24/7 security and dedicated lady warden.'},
+];
+
+// ── MAP ──
+const map=L.map('map',{center:[23.215665731175516, 77.12725816627474],zoom:17,zoomControl:true});
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:19}).addTo(map);
+
+// Campus boundary
+L.polygon([[23.0342,72.5212],[23.0345,72.5292],[23.0328,72.5298],[23.0248,72.5298],[23.0243,72.5212],[23.0262,72.5208]],
+  {color:'#1A3C5E',weight:2,fillOpacity:0.04,dashArray:'6,5'}).addTo(map);
+
+// Main gate label
+L.marker(GATE,{icon:L.divIcon({className:'',
+  html:'<div style="background:#fff;border:2px solid #1A3C5E;border-radius:7px;padding:3px 8px;font-size:10px;font-weight:700;color:#1A3C5E;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.15)">🚪 Main Gate</div>',
+  iconAnchor:[50,12]})}).addTo(map);
+
+// ── MARKERS ──
+const MK={};
+let uMK=null, uLL=null, RC=null, activeId=null;
+
+function mkI(loc,big=false){
+  const s=big?42:36;
+  return L.divIcon({className:'',
+    html:`<div class="cm" style="width:${s}px;height:${s}px;background:${CLR[loc.cat]}">${loc.icon}</div>`,
+    iconSize:[s,s],iconAnchor:[s/2,s/2],popupAnchor:[0,-s/2]});
+}
+
+LOCS.forEach(loc=>{
+  const m=L.marker([loc.lat,loc.lng],{icon:mkI(loc)}).addTo(map);
+  m.bindTooltip(`<b>${loc.name}</b><br><small style="color:#888">${loc.cat.toUpperCase()} · ${loc.hours}</small>`,{direction:'top',offset:[0,-20]});
+  m.on('click',()=>openIC(loc));
+  MK[loc.id]=m;
+});
+
+// ── INFO CARD ──
+function openIC(loc){
+  activeId=loc.id;
+  const c=CLR[loc.cat];
+  document.getElementById('icEm').style.background=c;
+  document.getElementById('icEm').textContent=loc.icon;
+  document.getElementById('icNm').textContent=loc.name;
+  document.getElementById('icCt').textContent=loc.cat.toUpperCase()+' · HORIZON COLLEGE';
+  document.getElementById('icDsc').textContent=loc.desc;
+  document.getElementById('icMt').innerHTML=`
+    <div class="mc"><div class="mc-l">Hours</div><div class="mc-v">${loc.hours}</div></div>
+    <div class="mc"><div class="mc-l">Floor</div><div class="mc-v">${loc.floor}</div></div>
+    <div class="mc"><div class="mc-l">Capacity</div><div class="mc-v">${loc.cap}</div></div>
+    <div class="mc"><div class="mc-l">Category</div><div class="mc-v" style="color:${c};text-transform:capitalize">${loc.cat}</div></div>`;
+  document.getElementById('ic').classList.add('show');
+  document.getElementById('ibNav').onclick=()=>{ navTo(loc); setMode('dir'); };
+  document.getElementById('ibFrom').onclick=()=>{ setFrom(loc); setMode('dir'); toast('Start point: '+loc.name); };
+  document.querySelectorAll('.li').forEach(e=>e.classList.remove('active'));
+  const li=document.querySelector(`.li[data-id="${loc.id}"]`);
+  if(li){li.classList.add('active');li.scrollIntoView({behavior:'smooth',block:'nearest'});}
+  map.setView([loc.lat,loc.lng],18,{animate:true});
+}
+function closeIC(){document.getElementById('ic').classList.remove('show');}
+
+// ── RENDER LIST ──
+let activeF='all', sq='';
+function renderList(){
+  const q=sq.toLowerCase();
+  const vis=LOCS.filter(l=>(activeF==='all'||l.cat===activeF)&&(l.name.toLowerCase().includes(q)||l.cat.includes(q)||l.desc.toLowerCase().includes(q)));
+  document.getElementById('sShow').textContent=vis.length;
+  LOCS.forEach(l=>{const m=MK[l.id];vis.find(f=>f.id===l.id)?(!map.hasLayer(m)&&m.addTo(map)):(map.hasLayer(m)&&m.remove());});
+  const ll=document.getElementById('ll');
+  if(!vis.length){ll.innerHTML='<div style="padding:40px 16px;text-align:center;color:var(--muted);font-size:13px;">No results found.</div>';return;}
+  ll.innerHTML='';
+  vis.forEach(loc=>{
+    const c=CLR[loc.cat];
+    const el=document.createElement('div');
+    el.className='li';el.dataset.id=loc.id;
+    el.innerHTML=`<div class="li-icon" style="background:${c}">${loc.icon}</div>
+      <div class="li-info"><div class="li-name">${loc.name}</div><div class="li-sub">${loc.hours} · ${loc.floor}</div></div>
+      <div class="li-badge" style="background:${c}">${loc.cat}</div>`;
+    el.onclick=()=>{openIC(loc);MK[loc.id].openTooltip();};
+    ll.appendChild(el);
+  });
+}
+
+// Pills
+document.querySelectorAll('.pill').forEach(p=>{
+  p.onclick=()=>{document.querySelectorAll('.pill').forEach(x=>x.classList.remove('on'));p.classList.add('on');activeF=p.dataset.c;renderList();};
+});
+
+// Search + autocomplete
+const si=document.getElementById('si');
+const acd=document.getElementById('acd');
+si.addEventListener('input',e=>{
+  sq=e.target.value;renderList();
+  const q=sq.toLowerCase();
+  if(q.length<1){acd.style.display='none';return;}
+  const m=LOCS.filter(l=>l.name.toLowerCase().includes(q)||l.cat.includes(q)).slice(0,5);
+  if(!m.length){acd.style.display='none';return;}
+  acd.innerHTML=m.map(l=>`<div class="ac-row" onclick="acPick(${l.id})"><span style="font-size:16px">${l.icon}</span><div><div class="ac-rname">${l.name}</div><div class="ac-rcat">${l.cat.toUpperCase()} · ${l.hours}</div></div></div>`).join('');
+  acd.style.display='block';
+});
+document.addEventListener('click',e=>{if(!e.target.closest('.sb-search'))acd.style.display='none';});
+
+function acPick(id){
+  const loc=LOCS.find(l=>l.id===id);if(!loc)return;
+  acd.style.display='none';si.value=loc.name;sq='';renderList();
+  openIC(loc);map.setView([loc.lat,loc.lng],18,{animate:true});
+}
+
+// ── DIRECTIONS ──
+function fillSels(){
+  const f=document.getElementById('fSel'),t=document.getElementById('tSel');
+  f.innerHTML='<option value="gate">🚪 Main Campus Gate</option>';
+  if(uLL)f.innerHTML='<option value="me">📍 My Current Location</option>'+f.innerHTML;
+  t.innerHTML='<option value="">— Select Destination —</option>';
+  LOCS.forEach(l=>{
+    f.innerHTML+=`<option value="${l.id}">${l.icon} ${l.name}</option>`;
+    t.innerHTML+=`<option value="${l.id}">${l.icon} ${l.name}</option>`;
+  });
+}
+function navTo(loc){fillSels();document.getElementById('tSel').value=loc.id;}
+function setFrom(loc){fillSels();document.getElementById('fSel').value=loc.id;}
+
+function getLL(val){
+  if(val==='me'&&uLL)return uLL;
+  if(val==='gate')return L.latLng(GATE[0],GATE[1]);
+  const l=LOCS.find(x=>x.id==val);return l?L.latLng(l.lat,l.lng):null;
+}
+
+function startRoute(){
+  const fv=document.getElementById('fSel').value,tv=document.getElementById('tSel').value;
+  if(!tv){toast('Please select a destination');return;}
+  const fromLL=getLL(fv),toLL=getLL(tv);
+  if(!fromLL||!toLL){toast('Could not determine locations');return;}
+  if(RC){map.removeControl(RC);RC=null;}
+  document.getElementById('stepsList').innerHTML='<div class="no-r">⏳ Calculating route…</div>';
+  document.getElementById('sHd').style.display='none';
+  document.getElementById('bClr').style.display='block';
+  RC=L.Routing.control({
+    waypoints:[fromLL,toLL],
+    router:L.Routing.osrmv1({serviceUrl:'https://router.project-osrm.org/route/v1',profile:'foot'}),
+    routeWhileDragging:false,addWaypoints:false,draggableWaypoints:false,
+    fitSelectedRoutes:true,showAlternatives:false,
+    lineOptions:{styles:[{color:'#F05A1A',weight:5,opacity:.85}],extendToWaypoints:true,missingRouteTolerance:0},
+    createMarker:(i,wp)=>L.marker(wp.latLng,{icon:L.divIcon({className:'',
+      html:`<div style="width:24px;height:24px;border-radius:50%;background:${i===0?'#2979FF':'#F05A1A'};border:3px solid #fff;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.25)">${i===0?'A':'B'}</div>`,
+      iconSize:[24,24],iconAnchor:[12,12]})})
+  }).addTo(map);
+  RC.on('routesfound',e=>{
+    const r=e.routes[0],d=r.summary.totalDistance,s=r.summary.totalTime;
+    document.getElementById('rsDist').textContent=d>=1000?(d/1000).toFixed(1)+' km':Math.round(d)+' m';
+    const mn=Math.max(1,Math.round(s/60));
+    document.getElementById('rsTime').textContent=mn<60?mn+' min':Math.floor(mn/60)+'h '+(mn%60)+'m';
+    document.getElementById('rsMode').textContent='🚶';
+    document.getElementById('rs').classList.add('show');
+    const steps=r.instructions||[];
+    document.getElementById('sHd').style.display=steps.length?'block':'none';
+    document.getElementById('stepsList').innerHTML=steps.length?steps.map((st,i)=>
+      `<div class="step"><div class="step-n">${i+1}</div><div><div class="step-t">${st.text}</div><div class="step-d">${st.distance>=1000?(st.distance/1000).toFixed(1)+' km':Math.round(st.distance)+' m'}</div></div></div>`
+    ).join(''):'<div class="no-r">Route found! No step data available.</div>';
+  });
+  RC.on('routingerror',()=>{
+    document.getElementById('stepsList').innerHTML='<div class="no-r">⚠️ Could not fetch route.<br>Requires internet access.<br><br>Check connection and retry.</div>';
+    document.getElementById('rs').classList.remove('show');
+  });
+}
+
+function clearRoute(){
+  if(RC){map.removeControl(RC);RC=null;}
+  document.getElementById('stepsList').innerHTML='<div class="no-r">Select a destination above<br>and tap <strong>Get Directions</strong><br>to view the route.</div>';
+  document.getElementById('rs').classList.remove('show');
+  document.getElementById('sHd').style.display='none';
+  document.getElementById('bClr').style.display='none';
+}
+
+// ── GEOLOCATION ──
+function findMe(){
+  if(!navigator.geolocation){toast('Geolocation not supported');return;}
+  toast('Detecting location…');
+  navigator.geolocation.getCurrentPosition(pos=>{
+    uLL=L.latLng(pos.coords.latitude,pos.coords.longitude);
+    if(uMK)map.removeLayer(uMK);
+    uMK=L.marker(uLL,{icon:L.divIcon({className:'',html:'<div><div class="cm-u"></div></div>',iconSize:[16,16],iconAnchor:[8,8]}),zIndexOffset:1000})
+      .addTo(map).bindPopup('📍 You are here').openPopup();
+    map.setView(uLL,17,{animate:true});
+    toast('Location found!');
+    fillSels();
+    document.getElementById('fSel').value='me';
+  },err=>{toast({1:'Location access denied',2:'Position unavailable',3:'Request timed out'}[err.code]||'Location error');},{timeout:8000});
+}
+
+// ── MODE SWITCH ──
+function setMode(m){
+  const b=m==='browse';
+  document.getElementById('pBrowse').style.display=b?'flex':'none';
+  document.getElementById('pDir').style.display=b?'none':'flex';
+  document.getElementById('btnB').classList.toggle('on',b);
+  document.getElementById('btnD').classList.toggle('on',!b);
+  if(!b)fillSels();
+}
+
+// ── TOAST ──
+let tt;
+function toast(msg){const e=document.getElementById('toast');e.textContent=msg;e.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('show'),2800);}
+
+// ── KEYBOARD ──
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape')closeIC();
+  if(e.key==='/'&&document.activeElement!==si){e.preventDefault();si.focus();}
+});
+
+// ── INIT ──
+renderList();
+fillSels();
+</script>
+</body>
+</html>
